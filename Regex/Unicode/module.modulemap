@@ -1,0 +1,4 @@
+module Unicode [system][extern_c] {
+    header "Unicode.h"
+    export *
+}
