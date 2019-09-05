@@ -40,7 +40,7 @@ public final class Matcher: Cloneable {
 
     public func reset(index: String.Index) throws {
         var status = U_ZERO_ERROR
-        uregex_reset(pattern.regexp, Int32(index.encodedOffset), &status)
+        uregex_reset(pattern.regexp, Int32(index.utf16Offset(in: input)), &status)
         try RegexError.throwIfNeeded(status: status)
         resetEnd()
     }
@@ -50,8 +50,8 @@ public final class Matcher: Cloneable {
         let regionEnd = [region.upperBound, input.endIndex].min()!
         var status = U_ZERO_ERROR
         uregex_setRegion(pattern.regexp,
-                         Int32(regionStart.encodedOffset),
-                         Int32(regionEnd.encodedOffset),
+                         Int32(regionStart.utf16Offset(in: input)),
+                         Int32(regionEnd.utf16Offset(in: input)),
                          &status)
         try RegexError.throwIfNeeded(status: status)
         self.region = regionStart..<regionEnd
@@ -85,29 +85,29 @@ public final class Matcher: Cloneable {
         resetEnd()
         let start = [region.lowerBound, start].max()!
         var status = U_ZERO_ERROR
-        let result = uregex_find(pattern.regexp, Int32(start.encodedOffset), &status) != 0
+        let result = uregex_find(pattern.regexp, Int32(start.utf16Offset(in: input)), &status) != 0
         try RegexError.throwIfNeeded(status: status)
         return result
     }
 
     public func start() throws -> String.Index {
-        return try String.Index(encodedOffset: nativeStart())
+        return try String.Index(utf16Offset: nativeStart(), in: input)
     }
 
     public func start(group: Int) throws -> String.Index? {
         assert(group > 0, "Invalid group number: \(group)")
         let result = try nativeStart(group: group)
-        return result == -1 ? nil : String.Index(encodedOffset: result)
+        return result == -1 ? nil : String.Index(utf16Offset: result, in: input)
     }
 
     public func end() throws -> String.Index {
-        return try String.Index(encodedOffset: nativeEnd())
+        return try String.Index(utf16Offset: nativeEnd(), in: input)
     }
 
     public func end(group: Int) throws -> String.Index? {
         assert(group > 0, "Invalid group number: \(group)")
         let result = try nativeEnd(group: group)
-        return result == -1 ? nil : String.Index(encodedOffset: result)
+        return result == -1 ? nil : String.Index(utf16Offset: result, in: input)
     }
 
     public func append(replacement: String, to output: inout String) throws {
@@ -221,7 +221,7 @@ public final class Matcher: Cloneable {
         let previousEnd = Int(uregex_end(pattern.regexp, 0, &status))
         guard status == U_ZERO_ERROR
             else { return resetEnd() }
-        self.previousEnd = String.Index(encodedOffset: previousEnd)
+        self.previousEnd = String.Index(utf16Offset: previousEnd, in: input)
     }
 
     private func resetEnd() {
@@ -242,71 +242,3 @@ extension Character {
         return Int(unicodeScalars.first!.value)
     }
 }
-
-//
-//    /// Replaces every substring of the input that matches the pattern with the given replacement string.
-//    ///
-//    /// - parameters:
-//    ///     - replacement: a string containing the replacement text.
-//    /// - returns: a string containing the results of the find and replace.
-//    func replaceAll(with replacement: String) throws -> String {
-//        let replacementChars = Array(replacement.utf16)
-//        return try withBuffer(size: inputChars.count * 2) { buffer, size, status in
-//            uregex_replaceAll(regexp, replacementChars, Int32(replacementChars.count), buffer, size, status)
-//        }
-//    }
-//
-//    /// Replaces the first substring of the input that matches the pattern with the replacement string.
-//    ///
-//    /// - parameters:
-//    ///     - replacement: a string containing the replacement text.
-//    /// - returns: a string in which the results are placed.
-//    func replaceFirst(with replacement: String) throws -> String {
-//        let replacementChars = Array(replacement.utf16)
-//        return try withBuffer(size: inputChars.count * 2) { buffer, size, status in
-//            uregex_replaceFirst(regexp, replacementChars, Int32(replacementChars.count), buffer, size, status)
-//        }
-//    }
-//
-//    /// Implements a replace operation intended to be used as part of an incremental find-and-replace.
-//    ///
-//    /// - parameters:
-//    ///     - replacement: a string that provides the text to be substituted for the input text that matched the regexp pattern.
-//    ///     - string: a string to which the results of the find-and-replace are appended.
-//    func append(replacement: String, to string: inout String) throws {
-//        let replacementChars = Array(replacement.utf16)
-//        let result = try withBuffer { buffer, size, status in
-//            var buffers: [UnsafeMutablePointer<UInt16>?] = [buffer]
-//            var remaining = size
-//            return uregex_appendReplacement(regexp, replacementChars, Int32(replacementChars.count), &buffers, &remaining, status)
-//        }
-//        string.append(result)
-//    }
-//
-//    /// As the final step in a find-and-replace operation, append the remainder of the input string.
-//    ///
-//    /// - parameters:
-//    ///     - string: a string to which the results of the find-and-replace are appended.
-//    /// - returns: the destination string.
-//    func appendTail(to string: inout String) throws {
-//        let result = try withBuffer { buffer, size, status in
-//            var buffers: [UnsafeMutablePointer<UInt16>?] = [buffer]
-//            var remaining = size
-//            return uregex_appendTail(regexp, &buffers, &remaining, status)
-//        }
-//        string.append(result)
-//    }
-//
-//    private func withBuffer(size: Int = Int(BUFSIZ), callback: (UnsafeMutablePointer<UInt16>, Int32, UnsafeMutablePointer<UErrorCode>) throws -> Int32) throws -> String {
-//        var buffer = Array<UInt16>(repeating: 0, count: size)
-//        var status = U_ZERO_ERROR
-//        let length = try callback(&buffer, Int32(buffer.count), &status)
-//        if status == U_BUFFER_OVERFLOW_ERROR {
-//            buffer = Array<UInt16>(repeating: 0, count: Int(length))
-//            status = U_ZERO_ERROR
-//            _ = try callback(&buffer, Int32(buffer.count), &status)
-//        }
-//        try RegexError.throwIfNeeded(status: status)
-//        return String(utf16CodeUnits: buffer, count: Int(length))
-//    }
-//}

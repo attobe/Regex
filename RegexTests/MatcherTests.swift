@@ -3,7 +3,7 @@ import XCTest
 
 class MatcherTests: XCTestCase {
     private let input = "𠀋𡈽𡌛𡑮𡢽𠮟𡚴𡸴𣇄𣗄𣜿𣝣𣳾𤟱𥒎𥔎𥝱𥧄𥶡𦫿𦹀𧃴𧚄𨉷𨏍𪆐𠂉"
-    private let region = String.Index(encodedOffset: 2)..<String.Index(encodedOffset: 50)
+    private lazy var region = String.Index(utf16Offset: 2, in: input)..<String.Index(utf16Offset: 50, in: input)
     private var matcher: Matcher!
 
     override func setUp() {
@@ -16,8 +16,9 @@ class MatcherTests: XCTestCase {
     }
 
     func test_reset_resets_region() throws {
-        try matcher.reset("リセット")
-        XCTAssertEqual(String.Index(encodedOffset: 0)..<String.Index(encodedOffset: 4), matcher.region)
+        let input = "リセット"
+        try matcher.reset(input)
+        XCTAssertEqual(String.Index(utf16Offset: 0, in: input)..<String.Index(utf16Offset: 4, in: input), matcher.region)
     }
 
     func test_find_returns_true_on_matched() throws {
@@ -54,14 +55,14 @@ class MatcherTests: XCTestCase {
     func test_toMatch_returns_Match_that_has_correct_range() throws {
         _ = try matcher.find()
         let match1 = try matcher.toMatch()
-        XCTAssertEqual(String.Index(encodedOffset: 4)..<String.Index(encodedOffset: 8), match1.range)
-        XCTAssertEqual(String.Index(encodedOffset: 4)..<String.Index(encodedOffset: 6), match1[1]?.range)
-        XCTAssertEqual(String.Index(encodedOffset: 6)..<String.Index(encodedOffset: 8), match1[2]?.range)
+        XCTAssertEqual(String.Index(utf16Offset: 4, in: input)..<String.Index(utf16Offset: 8, in: input), match1.range)
+        XCTAssertEqual(String.Index(utf16Offset: 4, in: input)..<String.Index(utf16Offset: 6, in: input), match1[1]?.range)
+        XCTAssertEqual(String.Index(utf16Offset: 6, in: input)..<String.Index(utf16Offset: 8, in: input), match1[2]?.range)
 
         _ = try matcher.find()
         let match2 = try matcher.toMatch()
-        XCTAssertEqual(String.Index(encodedOffset: 10)..<String.Index(encodedOffset: 12), match2.range)
-        XCTAssertEqual(String.Index(encodedOffset: 10)..<String.Index(encodedOffset: 12), match2[1]?.range)
+        XCTAssertEqual(String.Index(utf16Offset: 10, in: input)..<String.Index(utf16Offset: 12, in: input), match2.range)
+        XCTAssertEqual(String.Index(utf16Offset: 10, in: input)..<String.Index(utf16Offset: 12, in: input), match2[1]?.range)
         XCTAssertEqual(nil, match2[2]?.range)
     }
 
